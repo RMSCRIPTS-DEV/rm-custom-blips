@@ -4,8 +4,6 @@
 
 New map blip icons for FiveM, plus an in-game editor for placing blips without touching code.
 
-![Icon set](docs/preview.png)
-
 - **35 custom icons**: bank, stores, hospital, police, garages, jobs, casino, housing and more. They are drawn as one set: round badge, solid glyph.
 - **Works with every script you already have.** Each icon replaces a vanilla blip sprite id. Any resource that calls `SetBlipSprite(blip, 381)` shows the new bank icon, with no changes to that resource.
 - **`/blips` editor** to create, move, edit, teleport to and delete blips in game. Blips are saved in MySQL and pushed to every player instantly.

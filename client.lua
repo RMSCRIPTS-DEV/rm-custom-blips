@@ -1,26 +1,48 @@
 local Config = require 'config'
 
 -- ─── Custom icons ────────────────────────────────────────────────────────────────
--- GTA draws every blip from a few texture sheets inside minimap.ytd. sheets/*.png are
--- copies of those sheets with our icons painted over some vanilla ones; swapping the
--- whole sheet makes any blip that uses one of those sprite ids show the new icon.
+-- GTA draws every blip from a few texture sheets inside minimap.ytd. A hidden DUI page
+-- (html/sheet.html) paints the vanilla sheet plus every blips/<id>.png over its slot,
+-- and that page replaces the game's sheet. Any blip using a slot's sprite id then shows
+-- the dropped-in image - no build step, just add the PNG and restart the resource.
+
+--- Slots that actually have a PNG in blips/.
+local activeSlots = {}
+for _, slot in ipairs(Config.Slots) do
+    if LoadResourceFile(cache.resource, ('blips/%d.png'):format(slot.id)) then
+        activeSlots[#activeSlots + 1] = slot
+    end
+end
+
+local dui
 
 CreateThread(function()
-    local txd = CreateRuntimeTxd('rm_custom_blips')
-    for _, sheet in ipairs(Config.sheets) do
-        local path = ('sheets/%s.png'):format(sheet)
-        if LoadResourceFile(cache.resource, path) then
-            CreateRuntimeTextureFromImage(txd, sheet, path)
-            AddReplaceTexture('minimap', sheet, 'rm_custom_blips', sheet)
-        end
+    if #activeSlots == 0 then return end
+    local sheet = Config.sheet
+
+    dui = CreateDui(('nui://%s/html/sheet.html'):format(cache.resource), sheet.width, sheet.height)
+    local timeout = GetGameTimer() + 10000
+    while not IsDuiAvailable(dui) and GetGameTimer() < timeout do Wait(50) end
+    if not IsDuiAvailable(dui) then
+        print('^1[rm-custom-blips] blip sheet page did not load^7')
+        return
     end
+
+    SendDuiMessage(dui, json.encode({
+        action = 'build', sheet = sheet.name, width = sheet.width, height = sheet.height, slots = activeSlots,
+    }))
+    -- Give the page time to draw before it replaces the real sheet (else blips flash empty).
+    Wait(1500)
+
+    local txd = CreateRuntimeTxd('rm_custom_blips')
+    CreateRuntimeTextureFromDuiHandle(txd, sheet.name, GetDuiHandle(dui))
+    AddReplaceTexture('minimap', sheet.name, 'rm_custom_blips', sheet.name)
 end)
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= cache.resource then return end
-    for _, sheet in ipairs(Config.sheets) do
-        RemoveReplaceTexture('minimap', sheet)
-    end
+    RemoveReplaceTexture('minimap', Config.sheet.name)
+    if dui then DestroyDui(dui) end
 end)
 
 -- ─── Static blips (config.lua) ───────────────────────────────────────────────────
@@ -107,7 +129,7 @@ local DISPLAY = {
 
 local function customOptions()
     local list = { { value = 0, label = '- use the sprite id above -' } }
-    for _, s in ipairs(Config.CustomSprites) do
+    for _, s in ipairs(activeSlots) do
         list[#list + 1] = { value = s.id, label = ('%s (%d)'):format(s.label, s.id) }
     end
     return list

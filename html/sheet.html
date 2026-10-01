@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="sheet"></canvas>
+<script>
+// Hidden DUI page: draws the vanilla blip sheet, then every PNG from blips/ over its
+// sprite slot. client.lua uses this page as the replacement minimap texture.
+const canvas = document.getElementById('sheet');
+const ctx = canvas.getContext('2d');
+
+function load(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
+
+async function build(data) {
+    canvas.width = data.width;
+    canvas.height = data.height;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const base = await load('../sheets/' + data.sheet + '.png');
+    if (base) ctx.drawImage(base, 0, 0, data.width, data.height);
+
+    const icons = await Promise.all(data.slots.map((s) => load('../blips/' + s.id + '.png')));
+    data.slots.forEach((s, i) => {
+        if (!icons[i]) return;
+        ctx.clearRect(s.x, s.y, s.w, s.h);
+        ctx.drawImage(icons[i], s.x, s.y, s.w, s.h);
+    });
+}
+
+window.addEventListener('message', (e) => {
+    if (e.data && e.data.action === 'build') build(e.data);
+});
+</script>
+</body>
+</html>

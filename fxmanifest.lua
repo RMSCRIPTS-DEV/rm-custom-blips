@@ -18,7 +18,9 @@ server_scripts {
 
 files {
     'config.lua',
+    'html/sheet.html',
     'sheets/*.png',
+    'blips/*.png',
 }
 
 dependencies {

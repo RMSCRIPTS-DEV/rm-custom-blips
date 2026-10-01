@@ -1,5 +1,3 @@
-# rm-custom-blips
-
 ![rm-custom-blips](https://r2.fivemanage.com/aKdhnWQAzohu8VO3pwbkC/custom-blips-thumbnail.png)
 
 New map blip icons for FiveM, plus an in-game editor for placing blips without touching code.
